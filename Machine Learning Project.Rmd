@@ -78,7 +78,7 @@ One of the methods (as explained on the lecture 15, covariate creation) is to st
 ```{r, features}
     ## Check for near zero variance of the features
     nsv <- nearZeroVar(newTrain, saveMetrics=TRUE)
-    nsv
+    print(nsv)
 ```
 
 ### C Running the Model
@@ -121,18 +121,22 @@ To solve this problem, the random forest algorith is used. According to the mate
 
     ## Test the results accuracy
     testPC <- predict(preProc,testing)
-    confusionMatrix(testing$classe, predict(modelFit,testPC))
+    print(confusionMatrix(testing$classe, predict(modelFit,testPC)))
 ```
 
-The overall accuracy of the model is 0.9791, and for each class the balanced accuracy is always over 0.97. After this results the validation is conducted with the validation dataset of 20 rows.
+The overall accuracy of the model is 0.9781, and for each class the balanced accuracy is always over 0.96. This high accuracy is expected from this type of algorithm.
+
+After this results the validation is conducted with the validation dataset of 20 rows.
 
 ```{r, outSample}
     ## Predict class with the validation set
     testOut <- predict(preProc,newTest)
     testOut <- predict(preProc, newTest[, -53])
     answers <- predict(modelFit, testOut)
-    answers
+    print(answers)
 ```
+
+These answers have an accuracy of 95%, or 19 of 20 classes were correct (given by quiz results). This out of sample error is far below the estimate based on the averall accuracy (97.8%), but the cause is maybe that the validations set is too short (and one sigle error can drop the accuracy 5%).
 
 ### D) References
 

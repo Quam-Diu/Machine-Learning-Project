@@ -138,7 +138,7 @@ img {
 <p>One of the methods (as explained on the lecture 15, covariate creation) is to study the variance of the variables and discard those wich variance is near zero (they wouldn’t add value to the problem). In this case, all of the remaining variables (52) had enought variance to add value to the solution of the problem, however an aditional “selection” will be implicitly made using the principal components analysis during the preprocesing of the model in the next step.</p>
 <pre class="r"><code>    ## Check for near zero variance of the features
     nsv &lt;- nearZeroVar(newTrain, saveMetrics=TRUE)
-    nsv</code></pre>
+    print(nsv)</code></pre>
 <pre><code>##                      freqRatio percentUnique zeroVar   nzv
 ## roll_belt             1.101904     6.7781062   FALSE FALSE
 ## pitch_belt            1.036082     9.3772296   FALSE FALSE
@@ -226,7 +226,7 @@ img {
 
     ## Test the results accuracy
     testPC &lt;- predict(preProc,testing)
-    confusionMatrix(testing$classe, predict(modelFit,testPC))</code></pre>
+    print(confusionMatrix(testing$classe, predict(modelFit,testPC)))</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
@@ -258,7 +258,8 @@ img {
 ## Detection Rate         0.2829   0.1889   0.1703   0.1568   0.1792
 ## Detection Prevalence   0.2845   0.1935   0.1744   0.1639   0.1838
 ## Balanced Accuracy      0.9945   0.9847   0.9686   0.9854   0.9951</code></pre>
-<p>The overall accuracy of the model is 0.9791, and for each class the balanced accuracy is always over 0.97. After this results the validation is conducted with the validation dataset of 20 rows.</p>
+<p>The overall accuracy of the model is 0.9781, and for each class the balanced accuracy is always over 0.96. This high accuracy is expected from this type of algorithm.</p>
+<p>After this results the validation is conducted with the validation dataset of 20 rows.</p>
 <pre class="r"><code>    ## Predict class with the validation set
     testOut &lt;- predict(preProc,newTest)
     testOut &lt;- predict(preProc, newTest[, -53])
@@ -276,9 +277,10 @@ img {
 ## The following object is masked from 'package:dplyr':
 ## 
 ##     combine</code></pre>
-<pre class="r"><code>    answers</code></pre>
+<pre class="r"><code>    print(answers)</code></pre>
 <pre><code>##  [1] B A C A A E D B A A B C B A E E A B B B
 ## Levels: A B C D E</code></pre>
+<p>These answers have an accuracy of 95%, or 19 of 20 classes were correct (given by quiz results). This out of sample error is far below the estimate based on the averall accuracy (97.8%), but the cause is maybe that the validations set is too short (and one sigle error can drop the accuracy 5%).</p>
 </div>
 <div id="d-references" class="section level3">
 <h3>D) References</h3>
