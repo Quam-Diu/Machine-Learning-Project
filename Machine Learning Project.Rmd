@@ -1,0 +1,145 @@
+---
+title: "Machine Learning Project"
+author: "Tavo"
+date: "Thursday, January 28, 2016"
+output: html_document
+---
+
+## Machine Learning Course Project
+
+### A) Project description
+
+This project is part of the course "Practical Machine Learning" from the Data Scientist Specialization on Coursera. The objective is to apply different concepts and R packages learned during the course to a raw data set in order to qualitatively classify an excersise (weight lifting) as correctly or incorrectly executed.
+
+### B) Study design and data processing
+
+#### B.1) Collection of the raw data
+
+The datasets were downloaded from the following links:
+
+- Train set: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+- Test set: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The original data was made available by the Human Activity Recognition Project, under Creative Commons license (CC BY-SA), and can be downloaded here:
+
+- http://groupware.les.inf.puc-rio.br/static/har/dataset-har-PUC-Rio-ugulino.zip
+
+The R packages required to run the code are:
+
+```{r, libraries}
+    ## Load required libraries
+    library(dplyr)
+    library(ggplot2)
+    library(caret)
+```
+
+#### B.2) Notes on the original data
+
+A dictionary or a full description of the variables used in the experiment wasn't found. However in the paper that describes the original experiment (http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf) some of the variables were discused and explained. This available information is what is used to further analysis and processing of the dataset.
+
+```{r, datasets, cache=TRUE}
+    
+    ## Download data (if required) and create two datasets
+    trainUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv" 
+    trainName <- "pml-training.csv"
+
+    testUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+    testName <- "pml-testing.csv"
+
+    if(!file.exists(trainName)){ download.file(trainUrl, destfile=trainName, method="curl")}
+    if(!file.exists(testName)){ download.file(testUrl, destfile=testName, method="curl")}
+
+    ## Empty cells are treated as NAs
+    train <- read.csv(trainName, na.strings=c("","NA"))
+    test <- read.csv(testName, na.strings=c("","NA"))
+
+```
+
+#### B.3) Creating a tidy dataset
+
+The variables with more than 90% of its rows as "NAs" will be droped. This operation reduces the number of columns from 160 to 60, which (hopefully) will reduce also the time required to run the model. Also the first 7 columns were removed because they are just for identification purposes and doesn't add value to resolve the problem at hand.
+
+```{r, dataTyding}
+    ## Columns with more than 90% of NAs are droped. Also the first 7 indexing columns.
+    newTrain <- train[, !(colSums(is.na(train)) > 0.9*nrow(train))]
+    newTrain <- newTrain[, 8:60]
+
+    newTest <- test[, !(colSums(is.na(test)) > 0.9*nrow(test))]
+    newTest <- newTest[, 8:60]
+```
+
+#### B.4) Variables used
+
+For feature selection, many algorithms could be used (PCA - Principal Components Analysis is an example), for example in the sections 5.1 and 5.2 of the paper about HRA, the autors explain that they selected 17 features using a selection algorithm based on correlation proposed by Hall [3] and that the algorithm was configured to use a Best First strategy based on backtracking. 
+
+One of the methods (as explained on the lecture 15, covariate creation) is to study the variance of the variables and discard those wich variance is near zero (they wouldn't add value to the problem). In this case, all of the remaining variables (52) had enought variance to add value to the solution of the problem, however an aditional "selection" will be implicitly made using the principal components analysis during the preprocesing of the model in the next step.
+
+```{r, features}
+    ## Check for near zero variance of the features
+    nsv <- nearZeroVar(newTrain, saveMetrics=TRUE)
+    nsv
+```
+
+### C Running the Model
+
+The question asked requires to use the given data to classify it into 5 different categories, labeled "A", "B", "C", "D", "E", according to the original study, this labels correspond to:
+
+- Class A: exactly according to the specification
+
+- Class B: throwing the elbows to the front
+
+- Class C: lifting the dumbbell only halfway
+
+- Class D: lowering the dumbbell only halfway
+
+- Class E: and throwing the hips to the front
+
+To solve this problem, the random forest algorith is used. According to the material given in the course [4}] this algorithm has various desirable features to solve this problem, among them:
+
+- It is unexcelled in accuracy among current algorithms.
+
+- Runs efficiently on large data bases.
+
+- Can handle many input variables without variable deletion.
+
+- Gives estimates of what variables are important in the classification.
+
+- There is no need for cross-validation or a separate test set to get an unbiased estimate of the test set error.
+
+```{r, model, cache=TRUE}
+    ## Split data into train / test sets
+    set.seed(2442)
+    intrain <- createDataPartition(y=newTrain$classe, p=0.8, list=FALSE)
+    training <- newTrain[intrain,]
+    testing <- newTrain[-intrain,]
+    
+    ## Preprocess and run the model
+    preProc <- preProcess(training, method="pca", tresh=0.8)
+    trainPC <- predict(preProc,training)
+    modelFit <- train(as.factor(training$classe) ~ .,method="rf",data=trainPC)
+
+    ## Test the results accuracy
+    testPC <- predict(preProc,testing)
+    confusionMatrix(testing$classe, predict(modelFit,testPC))
+```
+
+The overall accuracy of the model is 0.9791, and for each class the balanced accuracy is always over 0.97. After this results the validation is conducted with the validation dataset of 20 rows.
+
+```{r, outSample}
+    ## Predict class with the validation set
+    testOut <- predict(preProc,newTest)
+    testOut <- predict(preProc, newTest[, -53])
+    answers <- predict(modelFit, testOut)
+    answers
+```
+
+### D) References
+
+[1] Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+[2] Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.
+
+[3] M. A. Hall. Correlation-based Feature Subset Selection for Machine Learning. PhD thesis, Department of Computer Science, University of Waikato, Hamilton, New Zealand, Apr. 1999.
+
+[4] Breiman, L.; Cutler, A. Random Forests. Berkely University.  http://www.stat.berkeley.edu/%7Ebreiman/RandomForests/cc_home.htm
